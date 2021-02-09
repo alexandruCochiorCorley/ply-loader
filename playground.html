@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+  <title>3D model</title>
+  <style>
+    body {
+      /* set margin to 0 and overflow to hidden, to go fullscreen */
+      margin: 0;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Div which will hold the Output -->
+<div id="WebGL-output"></div>
+
+<!-- Javascript code that runs our Three.js examples -->
+<script type="module">
+
+  import * as THREE from "./node_modules/three/build/three.module.js";
+  import { PLYLoader } from "./node_modules/three/examples/jsm/loaders/PLYLoader.js";
+  import { OrbitControls } from "./node_modules/three/examples/jsm/controls/OrbitControls.js";
+
+  // SETTINGS
+  const backgroundColor = 0xc0c0c0;
+  const axesSize = 20;
+  const cameraSettings = {
+    fox: 45,
+    near: 0.1,
+    far: 1000,
+    posX: 20,
+    posY: 20,
+    posZ: 20,
+    lookAtX: 0,
+    lookAtY: 0,
+    lookAtZ: 0,
+  };
+
+  // SCENE
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(backgroundColor);
+
+  // AXES
+  const axesHelper = new THREE.AxesHelper(axesSize);
+  scene.add(axesHelper);
+
+  // LIGHT
+  // const light = new THREE.SpotLight(0xffffff);
+  // light.position.set(20, 20, 20);
+  // light.rotateX(45);
+  // light.rotateY(45);
+  // light.rotateY(45);
+  // scene.add(light);
+
+  // CAMERA
+  const camera = new THREE.PerspectiveCamera(cameraSettings.fov, window.innerWidth / window.innerHeight, cameraSettings.near, cameraSettings.far);
+  camera.position.x = cameraSettings.posX;
+  camera.position.y = cameraSettings.posY;
+  camera.position.z = cameraSettings.posY;
+  camera.lookAt(new THREE.Vector3(cameraSettings.lookAtX, cameraSettings.lookAtY, cameraSettings.lookAtZ));
+
+  // RENDERER
+  const renderer = new THREE.WebGLRenderer();
+  // renderer.outputEncoding = THREE.sRGBEncoding;
+  // renderer.setClearColor(new THREE.Color(backgroundColor, 1.0));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  // ORBIT CONTROLS
+  const controls = new OrbitControls(camera, renderer.domElement);
+
+  // GET SIGNED URL
+  // const { visit_id, token } = getUrl();
+  // const Http = new XMLHttpRequest();
+  // const url=`https://test.omnidermal-wv.com/v1/visit/${visit_id}/3d-model-ply`;
+  // Http.open("GET", url);
+  // Http.setRequestHeader('Authorization', `Bearer ${token}`);
+  // Http.send();
+  // Http.onreadystatechange = (e) => {
+    // PLY LOADER
+
+    // DEV
+    const queryString = window.location.search;
+    const urlParams = new URLSearchParams(queryString);
+    let file = urlParams.get('file');
+    file = file ? `./data/${file}.ply` : file;
+
+    const loader = new PLYLoader();
+    loader.load(
+      // Http.responseText,
+      file ||'./ptc.ply',
+      onModelLoading,
+      (xhr) => console.log((xhr.loaded / xhr.total * 100) + '% loaded'),
+      (error) => console.log(error)
+    );
+  // };
+
+  function onModelLoading(geometry) {
+
+    // DEV
+    const queryString = window.location.search;
+    const urlParams = new URLSearchParams(queryString);
+    const size = urlParams.get('size');
+    const opacity = urlParams.get('opacity');
+    const transparent = urlParams.get('transparent');
+
+    let material = new THREE.PointsMaterial({
+      transparent: transparent || true,
+      opacity: opacity || 0.8,
+      size: size || 1,
+      vertexColors: THREE.VertexColors,
+    });
+
+    const group = new THREE.PointCloud(geometry, material);
+    group.sortParticles = true;
+
+    // Posiziona l'elemento
+    geometry.center();
+    group.rotateX(90);
+
+    scene.add(group);
+  }
+
+  function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    render();
+  }
+
+  function render() {
+    renderer.render(scene, camera);
+  }
+
+  function getUrl() {
+    const queryString = window.location.search;
+    const urlParams = new URLSearchParams(queryString);
+    const url = urlParams.get('url');
+    const token = urlParams.get('token');
+    const visit_id = urlParams.get('visit_id');
+    return { url, token, visit_id };
+  }
+
+  const animate = function () {
+    requestAnimationFrame(animate)
+    render()
+  };
+
+  animate();
+  window.addEventListener('resize', onWindowResize, false);
+</script>
+</body>
+</html>
